@@ -3,31 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="css/styles.css" type="text/css" />
     <title>Search for movies</title>
 </head>
 <body>
-    <header>
+    <header class="panel">
         <h1>Movie Search</h1>
-        <h6>This product uses the TMDb API but is not endorsed or certified by TMDb.</h6>
+        <p>This product uses the TMDb API but is not endorsed or certified by TMDb.</p>
     </header>
     <main>
         <div class="search_container">
-            <button class="search">Search</button>
-            <label for="title">Title</label>
-            <input type="text" id="title" placeholder="Gladiator">
-<!--
-            <label for=""></label>
-            <input type="text">
-            <label for=""></label>
-            <input type="text">
--->
+            <div class="search panel">
+                <label for="title">Title</label>
+                <input type="text" id="title" placeholder="Gladiator" value="jack reacher">
+            </div>
+            <div class="search panel">
+                <label for="advanced_search">Advanced Search</label>
+                <input type="checkbox" id="advanced_search" checked>
+            </div>
+            <div class="search panel">
+                <label for="date_gte">Date from</label>
+                <input type="date" id="date_gte">
+            </div>
+            <div class="search panel">
+                <label for="date_lte">Date to</label>
+                <input type="date" id="date_lte">
+            </div>
+            <div class="search panel">
+                <label for="popular">Popularity</label>
+                <input type="text" id="popular" placeholder="8.0">
+            </div>
+            <div class="search panel">
+                <label for="genres">Genres</label>
+                <input type="text" id="genres" placeholder="Action Drama">
+            </div>
+            <button class="search_button">Search</button>
         </div>
-        <div class="results_container"></div>
+        <div class="results_container">
+            <h2>Total Results: 2</h2>
+            <div class="result panel">
+                <img src="https://image.tmdb.org/t/p/w92/38bmEXmuJuInLs9dwfgOGCHmZ7l.jpg" class="image">
+                <h4 class="title">Jack Reacher</h4>
+                <p class="release_date"><i class="fa fa-calendar" aria-hidden="true"></i>2012-12-20</p>
+                <p class="genre_ids"><span>Crime</span><span>Drama</span><span>Thriller</span></p>
+                <p class="overview">In an innocent heartland city, five are shot dead by an expert sniper. The police quickly identify and arrest the culprit, and build a slam-dunk case. But the accused man claims he's innocent and says "Get Jack Reacher." Reacher himself sees the news report and turns up in the city. The defense is immensely relieved, but Reacher has come to bury the guy. Shocked at the accused's request, Reacher sets out to confirm for himself the absolute certainty of the man's guilt, but comes up with more than he bargained for...<span>Click for more</span></p>
+                <p class="original_language">en</p>
+                <p class="vote_average">6.3<i class="fa fa-star" aria-hidden="true"></i></p>
+            </div>
+            <div class="result panel">
+                <img src="https://image.tmdb.org/t/p/w92/38bmEXmuJuInLs9dwfgOGCHmZ7l.jpg" class="image">
+                <h4 class="title">Jack Reacher</h4>
+                <p class="release_date">2012-12-20</p>
+                <p class="genre_ids"><span>Crime</span><span>Drama</span><span>Thriller</span></p>
+                <p class="overview">In an innocent heartland city, five are shot dead by an expert sniper. The police quickly identify and arrest the culprit, and build a slam-dunk case. But the accused man claims he's innocent and says "Get Jack Reacher." Reacher himself sees the news report and turns up in the city. The defense is immensely relieved, but Reacher has come to bury the guy. Shocked at the accused's request, Reacher sets out to confirm for himself the absolute certainty of the man's guilt, but comes up with more than he bargained for...<span>Click for more</span></p>
+                <p class="original_language">en</p>
+                <p class="vote_average">6.3</p>
+            </div>
+        </div>
+        <div class="pagination panel">
+            <button><i class="fa fa-chevron-left" aria-hidden="true"></i></button>
+            <button class="page_selected">1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>...</button>
+            <button>10</button>
+            <button><i class="fa fa-chevron-right" aria-hidden="true"></i></i></button>
+        </div>
     </main>
-    <footer></footer>
+    <footer>
+        <p>Coded by Stefan Norbert Iuhas</p>
+    </footer>
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
-    <script type="text/javascript" src="js/script.js"></script>
+    <!--<script type="text/javascript" src="js/script.js"></script>-->
 </body>
 </html>
