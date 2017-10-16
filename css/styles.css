@@ -52,12 +52,16 @@ main {
 }
 
 .search {
-    /*display: none;*/
-    display: flex;
+    display: none;
+    /*display: flex;*/
     flex-direction: column;
     align-items: center;
     flex-basis: 40%;
     text-align: center;
+}
+
+.search:nth-child(-n+2) {
+    display: flex;
 }
 
 .search label {
@@ -71,12 +75,6 @@ main {
 .search input[type=text] {
     align-self: stretch;
 }
-
-/*
-.search:nth-child(-n+2) {
-    display: flex;
-}
-*/
 
 .panel {
     margin: 0 auto 2rem;
@@ -105,7 +103,8 @@ main {
 
 .result {
     display: grid;
-    grid-template: 2em 1em 10em 2em / repeat(3, auto);
+    /*grid-template: 2em 1em 5em 2em / repeat(3, auto);*/
+    grid-template: repeat(4, auto) / repeat(3, auto);
     width: 90%;
     padding-right: 1em;
     background: #fff;
@@ -137,8 +136,8 @@ main {
 
 .genre_ids {
     grid-column: 3/4;
-    grid-row: 1/2;
-    align-self: flex-end;
+    grid-row: 2/3;
+    /*align-self: flex-end;*/
     margin:0;
     text-align: right;
 }
@@ -173,7 +172,7 @@ main {
 }
 
 .pagination {
-    display: flex;
+    display: none;
     justify-content: center;
 }
 
