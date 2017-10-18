@@ -19,12 +19,13 @@ body {
 
 a {
     text-decoration: none;
+    cursor: pointer;
 }
 
 /*============================== HEADER =======================================*/
 
 header {
-    padding: 1em 0;
+    padding: 1rem 0;
     background: white;
     text-align: center;
 }
@@ -41,6 +42,11 @@ header p {
 
 main {
     width: 100%;
+    /*
+    background: url('https://image.tmdb.org/t/p/w1280/aJn9XeesqsrSLKcHfHP4u5985hn.jpg');
+    background-position: top;
+    background-repeat: no-repeat;
+    */
 }
 
 .search_container {
@@ -53,7 +59,6 @@ main {
 
 .search {
     display: none;
-    /*display: flex;*/
     flex-direction: column;
     align-items: center;
     flex-basis: 40%;
@@ -85,6 +90,7 @@ main {
 
 .search_button {
     flex-basis: 25%;
+    padding: 1rem;
     cursor: pointer;
     font-weight: 700;
     color: #ff0000;
@@ -103,15 +109,16 @@ main {
 
 .result {
     display: grid;
-    /*grid-template: 2em 1em 5em 2em / repeat(3, auto);*/
-    grid-template: repeat(4, auto) / repeat(3, auto);
+    grid-template: repeat(4, auto) / 92px repeat(2, auto);
+    grid-column-gap: 1rem;
     width: 90%;
-    padding-right: 1em;
+    padding-right: 1rem;
     background: #fff;
 }
 
 .result:hover {
     cursor: pointer;
+    box-shadow: 5px 10px #ccc;
 }
 
 .image {
@@ -137,7 +144,6 @@ main {
 .genre_ids {
     grid-column: 3/4;
     grid-row: 2/3;
-    /*align-self: flex-end;*/
     margin:0;
     text-align: right;
 }
@@ -193,6 +199,57 @@ main {
     color: white;
 }
 
+/*============================== Details =======================================*/
+
+.details_container {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    font-size: 1.2rem;
+    color: black;
+}
+
+.details {
+    display: grid;
+    grid-template: 100% / 40% 60%;
+    position: absolute;
+    background-color: rgba(200, 200, 200, 0.8);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.fa-times {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 3rem;
+    cursor: pointer;
+}
+
+.details img {
+    display: block;
+    align-self: center;
+    margin: 0 auto;
+}
+
+.details div {
+    align-self: center;
+    margin-right: 5rem;
+}
+
+.details a {
+    color: red;
+}
+
+#details_tagline {
+    font-style: italic;
+}
+
 /*============================== FOOTER =======================================*/
 
 footer {
@@ -210,4 +267,36 @@ footer p {
 }
 
 /*============================== Media Queries =======================================*/
+
+@media all and (min-width: 701px) and (max-width: 900px) {
+    html {
+        font-size: 13px;
+    }
+}
+
+@media all and (min-width: 601px) and (max-width: 700px) {
+    html {
+        font-size: 12px;
+    }
+}
+
+@media all and (min-width: 501px) and (max-width: 600px) {
+    html {
+        font-size: 11px;
+    }
+}
+
+@media all and (max-width: 500px) {
+    html {
+        font-size: 10px;
+    }
+    .details {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .details div {
+        margin: 2rem 5rem 0;
+    }
+}
 
