@@ -6,6 +6,10 @@ function getTimestamp(dateString){
     return result;
 }
 
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
 /*============================== Startup functions =======================================*/
 
 function requestGenres(){
@@ -91,8 +95,8 @@ function generatePagination(results, currentPage){
     //generate buttons
     for(let i=1; i<=5; i++){
         let button = '';
-        if(i == 4 && totalPageNumber > counter+1){
-            button = $('<button class="page">...</button>');
+        if(i == 4 && totalPageNumber >= counter+1){
+            button = $('<button class="page" data-page="' + counter + '">...</button>');
             button.insertBefore(lastButton);
             counter++;
             button = $('<button class="page">' + totalPageNumber + '</button>');
@@ -168,16 +172,14 @@ function changePage(){
     let nextPage = parseInt(currentPage.text(), 10) + 1;
     if($(this)[0] == firstButton[0]){
         console.log('changePage: ', 'firstButton clicked');
-        //firstButton.off('click');
         startSearch(false, prevPage);
     } else if ($(this)[0] == lastButton[0]){
         console.log('changePage: ', 'lastButton clicked');
-        //lastButton.off('click');
         startSearch(false, nextPage);
-    } else {
+    } else if($(this).text() == '...'){
+        startSearch(false, $(this).attr('data-page'));
+    }else {
         console.log('changePage: ', 'other clicked', $(this).text());
-        //firstButton.off('click');
-        //lastButton.off('click');
         startSearch(false, $(this).text());
     }
 }
@@ -264,7 +266,7 @@ function searchBy(obj){
     if(obj.title){
         requestByTitle(obj.title, obj.page, obj.otherCriterias)
     } else {
-        requestByOtherCriterias(obj.urlParameters);
+        requestByOtherCriterias(obj.page, obj.urlParameters);
     }
 }
 
@@ -278,7 +280,7 @@ function requestByTitle(str, page=1, otherCriterias){
         }
     ).done(function(data){
         console.log('requestByTitle done: ', data);
-        if(otherCriterias.dategte){
+        if(otherCriterias.dategte || otherCriterias.datelte || otherCriterias.genres){
             let filteredData = filterResults(data, otherCriterias);
             showResults(filteredData, page);
         } else {
@@ -316,15 +318,16 @@ function filterResults(data, otherCriterias){
     return data;
 }
 
-function requestByOtherCriterias(urlParameters){
-    let url = 'https://api.themoviedb.org/3/discover/movie?api_key=48f0555674730b7ab94aaeaf44dd3692' + urlParameters;
+function requestByOtherCriterias(page=1, urlParameters){
+    let url = 'https://api.themoviedb.org/3/discover/movie?api_key=48f0555674730b7ab94aaeaf44dd3692' +
+        '&sort_by=popularity.desc' + urlParameters + '&page=' + page;
     $.ajax(
         {
             url: url,
             method: 'GET'
         }
     ).done(function(data){
-        showResults(data);
+        showResults(data, page);
     }).fail(function(){
         console.log("Something went wrong in requestByOtherCriterias");
     });
@@ -346,6 +349,7 @@ function getGenresName(ids){
 
 function getGenresId(str){
     let arr = str.split(',');
+    arr = arr.map(capitalizeFirstLetter);
     let result = arr.map(function(x){
         for(let i=0; i<genres.length; i++){
             if(x == genres[i].name){
@@ -403,6 +407,8 @@ function editDetails(data) {
     $('#detais_title').text(data.title);
     $('#details_tagline').text(data.tagline);
     $('#details_release_date').text('Release date: ' + data.release_date);
+    $('#details_trailer').attr('href','https://www.youtube.com/results?search_query='+
+        encodeURIComponent(data.title+' ' + data.release_date + ' trailer'));
     $('#details_overview').html("<strong>Overview:</strong><br/>" + data.overview);
 }
 
