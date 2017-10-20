@@ -6,8 +6,8 @@ function getTimestamp(dateString){
     return result;
 }
 
-function capitalizeFirstLetter(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
+function capitalizeFirstLetter(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 /*============================== Startup functions =======================================*/
@@ -152,6 +152,10 @@ function showAdvancedSearch(){
 function hideAdvancedSearch(){
     $(".search").css("display", "none");
     $(".search:nth-child(-n+2)").css("display", "flex");
+}
+
+function clearInputs(){
+    $('.search input').val('');
 }
 
 function startSearch(event, pageSelected = false){
@@ -364,6 +368,7 @@ function getGenresId(str){
 /*============================== Detail functions =======================================*/
 
 function showDetails(){
+    $('body').addClass('noscroll');
     $('.details_container').css('display', 'block');
     let id = $(this).attr('data-id');
     console.log('Showing details for id: ' + id);
@@ -371,6 +376,7 @@ function showDetails(){
 }
 
 function hideDetails(){
+    $('body').removeClass('noscroll');
     $('.details_container').css('display', 'none');
 }
 
@@ -409,7 +415,10 @@ function editDetails(data) {
     $('#details_release_date').text('Release date: ' + data.release_date);
     $('#details_trailer').attr('href','https://www.youtube.com/results?search_query='+
         encodeURIComponent(data.title+' ' + data.release_date + ' trailer'));
-    $('#details_overview').html("<strong>Overview:</strong><br/>" + data.overview);
+    $('#details_overview').html("<strong>Overview: </strong><br/>" + data.overview);
+    //test with very long overview
+    //$('#details_overview').html("<strong>Overview:Lorem ipsum dolor sit amet, consectetur adipisicing elit. Consequuntur est non reprehenderit voluptas voluptatum. Ad amet deserunt explicabo id ipsam iure laboriosam nam nesciunt pariatur quia, vel velit veniam veritatis!</span><span>Dignissimos dolor excepturi harum nisi officiis sed suscipit, vel. Accusantium distinctio est minus non porro provident quae reiciendis sint vel! Ad adipisci doloremque dolorum exercitationem harum id obcaecati sapiente totam.</span><span>Ad alias atque aut cum dolor illo perspiciatis quod repellendus, veritatis! Accusantium aliquam aspernatur consectetur, cumque dolorum eum excepturi facere laudantium natus numquam odit quo quod repellat repudiandae tenetur, voluptatum.Lorem ipsum dolor sit amet, consectetur adipisicing elit. Consequuntur est non reprehenderit voluptas voluptatum. Ad amet deserunt explicabo id ipsam iure laboriosam nam nesciunt pariatur quia, vel velit veniam veritatis!</span><span>Dignissimos dolor excepturi harum nisi officiis sed suscipit, vel. Accusantium distinctio est minus non porro provident quae reiciendis sint vel! Ad adipisci doloremque dolorum exercitationem harum id obcaecati sapiente totam.</span><span>Ad alias atque aut cum dolor illo perspiciatis quod repellendus, veritatis! Accusantium aliquam aspernatur consectetur, cumque dolorum eum excepturi facere laudantium natus numquam odit quo quod repellat repudiandae tenetur, voluptatum.Lorem ipsum dolor sit amet, consectetur adipisicing elit. Consequuntur est non reprehenderit voluptas voluptatum. Ad amet deserunt explicabo id ipsam iure laboriosam nam nesciunt pariatur quia, vel velit veniam veritatis!</span><span>Dignissimos dolor excepturi harum nisi officiis sed suscipit, vel. Accusantium distinctio est minus non porro provident quae reiciendis sint vel! Ad adipisci doloremque dolorum exercitationem harum id obcaecati sapiente totam.</span><span>Ad alias atque aut cum dolor illo perspiciatis quod repellendus, veritatis! Accusantium aliquam aspernatur consectetur, cumque dolorum eum excepturi facere laudantium natus numquam odit quo quod repellat repudiandae tenetur, voluptatum.</strong><br/>" + data.overview);
+
 }
 
 /*============================== Event listeners =======================================*/
@@ -422,7 +431,13 @@ $("#advanced_search").change(
             hideAdvancedSearch();
         }
     });
-$(".search_button").click(startSearch);
+$("#clear").click(clearInputs);
+$("#search").click(startSearch);
+$('.search input').keypress(function(e) {
+    if(e.which == 13) {
+        startSearch();
+    }
+});
 $(".details .fa-times").click(hideDetails);
 let pagination = $("#pagination");
 pagination.find("button:first-child").click(changePage);
