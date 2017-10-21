@@ -89,9 +89,10 @@ function clearInputs(){
 }
 
 function startSearch(event, pageSelected = false){
+    clearSearchErrors();
     let criterias = checkSearchCriterias(pageSelected);
-    if(criterias.error){
-        console.log("There is an error");
+    if(! $.isEmptyObject(criterias.error)){
+        showSearchErrors(criterias.error);
     } else if(criterias){
         searchBy(criterias);
     } else {
@@ -99,9 +100,27 @@ function startSearch(event, pageSelected = false){
     }
 }
 
+function clearSearchErrors(){
+    const fieldsWithError = $('.search_container').find('.error');
+    if(fieldsWithError){
+        $('#results_container').find('h2').css('color', 'inherit');
+        fieldsWithError.removeClass('error');
+    }
+}
+
+function showSearchErrors(objErrors){
+    let errors = [];
+    console.log("showSearchErrors: " , objErrors);
+    $.each( objErrors, function( key, value ) {
+        $('#'+key).addClass('error');
+        errors.push(value);
+    });
+    $('#results_container').find('h2').text(errors.join(',')).css('color', 'red');
+}
+
 function checkSearchCriterias(pageSelected = false){
     let result = {};
-    result.error = '';
+    result.error = {};
     result.urlParameters = '';
     result.otherCriterias = {};
     if(pageSelected){
@@ -123,6 +142,11 @@ function checkSearchCriterias(pageSelected = false){
         if(criteria){
             //TODO validation
             //unknown genre xxx
+            let validationResult = validateGenres(criteria);
+            if(validationResult !== true){
+                result.error.genres = "Unknown genre: " + validationResult;
+                return result;
+            }
             criteria = getGenresId(criteria);
             result.urlParameters += '&with_genres=' + criteria;
             result.otherCriterias.genres = criteria;
@@ -266,6 +290,28 @@ function getGenresId(str){
     });
     result = result.join(',');
     return result;
+}
+
+/*============================== Validation functions =======================================*/
+
+function validateGenres(str){
+    let errors = [];
+    let arr = str.split(',');
+    arr = arr.map(capitalizeFirstLetter);
+    let genresarr = [];
+    $.each(genres, function(i, value){
+        genresarr[i] = value.name;
+    });
+    for (let i=0; i<arr.length; i++){
+        if($.inArray(arr[i], genresarr) == -1){
+            errors.push(arr[i]);
+        }
+    }
+    if(errors.length > 0){
+        return errors.join(',');
+    } else {
+        return true;
+    }
 }
 
 /*============================== Result functions =======================================*/

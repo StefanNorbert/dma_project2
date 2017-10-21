@@ -108,6 +108,10 @@ main {
     background: rgba(200, 200, 200, 0.1);
 }
 
+.search_container .error {
+    border: 1px solid red;
+}
+
 .results_container {  }
 
 .results_container h2 {
