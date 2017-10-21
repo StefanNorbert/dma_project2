@@ -2,8 +2,13 @@ let genres = [];
 
 /*============================== Helper functions =======================================*/
 function getTimestamp(dateString){
-    let result = Date.parse(dateString);
-    return result;
+    return Date.parse(dateString);
+}
+
+function sixMonthsAgo(){
+    let d = new Date();
+    d.setMonth(d.getMonth() - 6);
+    return d;
 }
 
 function capitalizeFirstLetter(str) {
@@ -20,7 +25,6 @@ function requestGenres(){
         }
     ).done(function(data){
         genres = data.genres;
-        console.log(genres);
         requestPopularMovies();
     }).fail(function(){
         console.log("Something went wrong in requestGenres");
@@ -28,10 +32,9 @@ function requestGenres(){
 }
 
 function requestPopularMovies(){
-    let d = new Date();
-    d.setMonth(d.getMonth() - 6);
-    let year = d.getFullYear();
-    let month = d.getMonth()+1;
+    const d = sixMonthsAgo();
+    const year = d.getFullYear();
+    const month = d.getMonth()+1;
     $.ajax(
         {
             url: 'https://api.themoviedb.org/3/discover/movie?vote_average.gte=6.5&vote_count.gte=2000&primary_release_date.gte='+year+'-'+
@@ -45,165 +48,68 @@ function requestPopularMovies(){
     });
 }
 
-function showResults(obj, currentPage=1, autoSearch = false){
-    if(!autoSearch){
-        $('#results_container h2').text('Total Results: ' + obj.total_results);
-    } else {
-        $('#results_container h2').text('Popular New Movies');
-    }
-    $('.page').remove();
-    let results = obj.total_results;
-    if(results > 20){
-        generatePagination(results, currentPage);
-    } else {
-        $("#pagination").css("display", "none");
-    }
-    generateHTML(obj.results);
+/*============================== Search functions =======================================*/
+
+function checkAdvancedSearchStatus(){
+    let advSearch = $('#advanced_search');
+    let value = advSearch.attr('data-toggle');
+    return value === 'true';
 }
 
-function generatePagination(results, currentPage){
-    console.log('generatePagination: ', 'Current Page: ', currentPage);
-    console.log('=====================END===========================');
-    let pagination = $("#pagination");
-    let firstButton = pagination.find("button:first-child");
-    let lastButton = pagination.find("button:last-child");
-    let totalPageNumber = Math.ceil(results/20);
-    pagination.css("display", "flex");
-    //show/hide left/right arrow
-    if(currentPage == 1 ){
-        firstButton.css('display', 'none');
-        lastButton.css('display', 'block');
-    } else if(currentPage == totalPageNumber ){
-        firstButton.css('display', 'block');
-        lastButton.css('display', 'none');
+function toggleAdvancedSearch(){
+    let advSearch = $('#advanced_search');
+    if(checkAdvancedSearchStatus()){
+        hideAdvancedSearch();
+        advSearch.attr('data-toggle', 'false');
     } else {
-        firstButton.css('display', 'block');
-        lastButton.css('display', 'block');
+        showAdvancedSearch();
+        advSearch.attr('data-toggle', 'true');
     }
-    let counter;
-    switch (currentPage%3) {
-        case 1:
-            counter = currentPage;
-            break;
-        case 2:
-            counter = currentPage - 1;
-            break;
-        case 0:
-            counter = currentPage - 2;
-            break;
-    }
-    //generate buttons
-    for(let i=1; i<=5; i++){
-        let button = '';
-        if(i == 4 && totalPageNumber >= counter+1){
-            button = $('<button class="page" data-page="' + counter + '">...</button>');
-            button.insertBefore(lastButton);
-            counter++;
-            button = $('<button class="page">' + totalPageNumber + '</button>');
-            button.insertBefore(lastButton);
-            counter++;
-            break;
-        }
-        if(counter > totalPageNumber){
-            break;
-        }
-        if(counter == currentPage){
-            button = $('<button class="page page_selected">'+counter+'</button>');
-        } else {
-            button = $('<button class="page">'+counter+'</button>');
-        }
-        button.insertBefore(lastButton);
-        counter++;
-    }
-    pagination.find(".page").click(changePage);
 }
-
-function generateHTML(arr){
-    $('.result').remove();
-    for(let i=0; i<arr.length; i++){
-        let result = $('<div class="result panel" data-id="'+ arr[i].id +'"></div>');
-        let src = '';
-        if(arr[i].poster_path == null){
-            src = 'images/no_image.png';
-        } else {
-            src = 'https://image.tmdb.org/t/p/w92' + arr[i].poster_path;
-        }
-        result.append('<img src="'  + src + '" class="image"/>');
-        result.append('<h4 class="title">' + arr[i].title + '</h4>');
-        result.append('<p class="release_date"><i class="fa fa-calendar" aria-hidden="true"></i>' + arr[i].release_date + '</p>');
-        let content = getGenresName(arr[i].genre_ids);
-        result.append('<p class="genre_ids">' + content + '</p>');
-        content = arr[i].overview;
-        content = content.length > 100 ? content.slice(0,97) + '...' : content ;
-        result.append('<p class="overview">' + content + '<span>Click for more</span></p>');
-        result.append('<p class="original_language">' + arr[i].original_language + '</p>');
-        result.append('<p class="vote_average">' + arr[i].vote_count + ' \\ ' + arr[i].vote_average + '<i class="fa fa-star" aria-hidden="true"></i></p>');
-        $("#results_container").append(result);
-    }
-    $(".result").click(showDetails);
-}
-
-/*============================== Listener functions =======================================*/
 
 function showAdvancedSearch(){
+    $('#advanced_search').find('.fa').addClass('fa-toggle-on').removeClass('fa-toggle-off');
+    $('#clear').text('Clear All');
     $(".search").css("display", "flex");
 }
 
 function hideAdvancedSearch(){
+    $('#advanced_search').find('.fa').addClass('fa-toggle-off').removeClass('fa-toggle-on');
+    $('#clear').text('Clear Title');
     $(".search").css("display", "none");
     $(".search:nth-child(-n+2)").css("display", "flex");
 }
 
 function clearInputs(){
-    $('.search input').val('');
+    if(checkAdvancedSearchStatus()){
+        $('.search input').val('');
+    } else {
+        $('#title').val('');
+    }
 }
 
 function startSearch(event, pageSelected = false){
     let criterias = checkSearchCriterias(pageSelected);
-    if(criterias){
+    if(criterias.error){
+        console.log("There is an error");
+    } else if(criterias){
         searchBy(criterias);
     } else {
         $('#results_container').find('h2').text('Please enter something to search');
     }
 }
 
-function changePage(){
-    let pagination = $("#pagination");
-    let firstButton = pagination.find("button:first-child");
-    let lastButton = pagination.find("button:last-child");
-    let currentPage = pagination.find(".page_selected");
-    let prevPage = parseInt(currentPage.text(), 10) - 1;
-    let nextPage = parseInt(currentPage.text(), 10) + 1;
-    if($(this)[0] == firstButton[0]){
-        console.log('changePage: ', 'firstButton clicked');
-        startSearch(false, prevPage);
-    } else if ($(this)[0] == lastButton[0]){
-        console.log('changePage: ', 'lastButton clicked');
-        startSearch(false, nextPage);
-    } else if($(this).text() == '...'){
-        startSearch(false, $(this).attr('data-page'));
-    }else {
-        console.log('changePage: ', 'other clicked', $(this).text());
-        startSearch(false, $(this).text());
-    }
-}
-
-/*============================== Search functions =======================================*/
-
 function checkSearchCriterias(pageSelected = false){
     let result = {};
-    result.title = '';
+    result.error = '';
     result.urlParameters = '';
     result.otherCriterias = {};
     if(pageSelected){
         result.page = pageSelected;
     }
-    let criteria = checkTitle();
-    if(criteria){
-        result.title = criteria;
-    }
-    if($('#advanced_search').prop( "checked" )){
-        criteria = checkDategte();
+    result.title = checkTitle();
+    if(checkAdvancedSearchStatus()){
+        let criteria = checkDategte();
         if(criteria){
             result.urlParameters += '&primary_release_date.gte=' + criteria;
             result.otherCriterias.dategte = criteria;
@@ -215,6 +121,8 @@ function checkSearchCriterias(pageSelected = false){
         }
         criteria = checkGenres();
         if(criteria){
+            //TODO validation
+            //unknown genre xxx
             criteria = getGenresId(criteria);
             result.urlParameters += '&with_genres=' + criteria;
             result.otherCriterias.genres = criteria;
@@ -230,13 +138,8 @@ function checkSearchCriterias(pageSelected = false){
 }
 
 function checkTitle(){
-    let title = $('#title');
-    if (title && title.val()) {
-        //TODO validation
-        return title.val();
-    } else {
-        return false;
-    }
+    const title = $('#title').val();
+    return title ? title : '';
 }
 
 function checkDategte(){
@@ -365,6 +268,144 @@ function getGenresId(str){
     return result;
 }
 
+/*============================== Result functions =======================================*/
+
+function showResults(obj, currentPage = 1, autoSearch = false){
+    const message = $('#results_container').find('h2');
+    if(!autoSearch){
+        message.text('Total Results: ' + obj.total_results);
+    } else {
+        message.text('Popular New Movies');
+    }
+    $('.page').remove();
+    let results = obj.total_results;
+    if(results > 20){
+        generatePagination(results, currentPage);
+    } else {
+        $("#pagination").css("display", "none");
+    }
+    generateHTML(obj.results);
+}
+
+function generateHTML(arr){
+    //noinspection JSJQueryEfficiency
+    $('.result').remove();
+    for(let i=0; i<arr.length; i++){
+        let result = $('<div class="result panel" data-id="'+ arr[i].id +'"></div>');
+        let src = '';
+        if(arr[i].poster_path == null){
+            src = 'images/no_image.png';
+        } else {
+            src = 'https://image.tmdb.org/t/p/w92' + arr[i].poster_path;
+        }
+        result.append('<img src="'  + src + '" class="image"/>');
+        result.append('<h4 class="title">' + arr[i].title + '</h4>');
+        result.append('<p class="release_date"><i class="fa fa-calendar" aria-hidden="true"></i>' + arr[i].release_date + '</p>');
+        let content = getGenresName(arr[i].genre_ids);
+        result.append('<p class="genre_ids">' + content + '</p>');
+        content = arr[i].overview;
+        content = content.length > 100 ? content.slice(0,97) + '...' : content ;
+        result.append('<p class="overview">' + content + '<span>Click for more</span></p>');
+        result.append('<p class="original_language">' + arr[i].original_language + '</p>');
+        result.append('<p class="vote_average">' + arr[i].vote_count + ' \\ ' + arr[i].vote_average + '<i class="fa fa-star" aria-hidden="true"></i></p>');
+        $("#results_container").append(result);
+    }
+    //noinspection JSJQueryEfficiency
+    $(".result").click(showDetails);
+}
+
+/*============================== Pagination functions =======================================*/
+
+function generatePagination(results, currentPage){
+    console.log('generatePagination: ', 'Current Page: ', currentPage);
+    console.log('=====================END===========================');
+    const pagination = $("#pagination");
+    const firstButton = pagination.find("button:first-child");
+    const backButton = pagination.find("button:nth-child(2)");
+    const lastButton = pagination.find("button:last-child");
+    let totalPageNumber = Math.ceil(results/20);
+    pagination.css("display", "flex");
+    //show/hide left/right arrow
+    if(currentPage == 1 ){
+        firstButton.css('display', 'none');
+        backButton.css('display', 'none');
+        lastButton.css('display', 'block');
+    } else if(currentPage > 3 && currentPage != totalPageNumber ){
+        firstButton.css('display', 'block');
+        backButton.css('display', 'block');
+        lastButton.css('display', 'block');
+    } else if(currentPage == totalPageNumber ){
+        firstButton.css('display', 'block');
+        backButton.css('display', 'block');
+        lastButton.css('display', 'none');
+    } else {
+        firstButton.css('display', 'none');
+        backButton.css('display', 'block');
+        lastButton.css('display', 'block');
+    }
+    let counter;
+    switch (currentPage%3) {
+        case 1:
+            counter = currentPage;
+            break;
+        case 2:
+            counter = currentPage - 1;
+            break;
+        case 0:
+            counter = currentPage - 2;
+            break;
+    }
+    //generate buttons
+    for(let i=1; i<=5; i++){
+        let button = '';
+        if(i == 4 && totalPageNumber >= counter+1){
+            button = $('<button class="page" data-page="' + counter + '">...</button>');
+            button.insertBefore(lastButton);
+            counter++;
+            button = $('<button class="page">' + totalPageNumber + '</button>');
+            button.insertBefore(lastButton);
+            counter++;
+            break;
+        }
+        if(counter > totalPageNumber){
+            break;
+        }
+        if(counter == currentPage){
+            button = $('<button class="page page_selected">'+counter+'</button>');
+        } else {
+            button = $('<button class="page">'+counter+'</button>');
+        }
+        button.insertBefore(lastButton);
+        counter++;
+    }
+    pagination.find(".page").click(changePage);
+}
+
+function changePage(){
+    let pagination = $("#pagination");
+    let firstButton = pagination.find("button:first-child");
+    const backButton = pagination.find("button:nth-child(2)");
+    let lastButton = pagination.find("button:last-child");
+    let currentPage = pagination.find(".page_selected");
+    let prevPage = parseInt(currentPage.text(), 10) - 1;
+    let nextPage = parseInt(currentPage.text(), 10) + 1;
+    if($(this)[0] == firstButton[0]){
+        console.log('changePage: ', 'firstButton clicked');
+        startSearch();
+    } else if($(this)[0] == backButton[0]){
+        console.log('changePage: ', 'backButton clicked');
+        startSearch(false, prevPage);
+    } else if ($(this)[0] == lastButton[0]){
+        console.log('changePage: ', 'lastButton clicked');
+        startSearch(false, nextPage);
+    } else if($(this).text() == '...'){
+        startSearch(false, $(this).attr('data-page'));
+    }else {
+        console.log('changePage: ', 'other clicked', $(this).text());
+        startSearch(false, $(this).text());
+    }
+}
+
 /*============================== Detail functions =======================================*/
 
 function showDetails(){
@@ -423,14 +464,7 @@ function editDetails(data) {
 
 /*============================== Event listeners =======================================*/
 
-$("#advanced_search").change(
-    function(){
-        if (this.checked) {
-            showAdvancedSearch();
-        } else {
-            hideAdvancedSearch();
-        }
-    });
+$("#advanced_search").click(toggleAdvancedSearch);
 $("#clear").click(clearInputs);
 $("#search").click(startSearch);
 $('.search input').keypress(function(e) {
@@ -441,7 +475,7 @@ $('.search input').keypress(function(e) {
 $(".details .fa-times").click(hideDetails);
 let pagination = $("#pagination");
 pagination.find("button:first-child").click(changePage);
+pagination.find("button:nth-child(2)").click(changePage);
 pagination.find("button:last-child").click(changePage);
-
 
 requestGenres();
