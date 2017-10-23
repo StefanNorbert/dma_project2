@@ -1,4 +1,6 @@
+const pagination = $("#pagination");
 let genres = [];
+let lastURL = '';
 
 /*============================== Helper functions =======================================*/
 function getTimestamp(dateString){
@@ -35,17 +37,9 @@ function requestPopularMovies(){
     const d = sixMonthsAgo();
     const year = d.getFullYear();
     const month = d.getMonth()+1;
-    $.ajax(
-        {
-            url: 'https://api.themoviedb.org/3/discover/movie?vote_average.gte=6.5&vote_count.gte=2000&primary_release_date.gte='+year+'-'+
-            month+'-01&page=1&include_video=false&include_adult=false&sort_by=popularity.desc&language=en-US&api_key=48f0555674730b7ab94aaeaf44dd3692',
-            method: 'GET'
-        }
-    ).done(function(data){
-        showResults(data, 1, true);
-    }).fail(function(){
-        console.log("Something went wrong in requestPopularMovies");
-    });
+    const url = 'https://api.themoviedb.org/3/discover/movie?vote_average.gte=6.5&vote_count.gte=2000&primary_release_date.gte='+year+'-'+
+        month+'-01&include_video=false&include_adult=false&sort_by=popularity.desc&language=en-US&api_key=48f0555674730b7ab94aaeaf44dd3692&page=1';
+    sendRequest(url,'autosearch');
 }
 
 /*============================== Search functions =======================================*/
@@ -96,14 +90,14 @@ function startSearch(event, pageSelected = false){
     } else if(criterias){
         searchBy(criterias);
     } else {
-        $('#results_container').find('h2').text('Please enter something to search');
+        changeMessage('Please enter something to search');
     }
 }
 
 function clearSearchErrors(){
     const fieldsWithError = $('.search_container').find('.error');
     if(fieldsWithError){
-        $('#results_container').find('h2').css('color', 'inherit');
+        changeMessage();
         fieldsWithError.removeClass('error');
     }
 }
@@ -115,7 +109,7 @@ function showSearchErrors(objErrors){
         $('#'+key).addClass('error');
         errors.push(value);
     });
-    $('#results_container').find('h2').text(errors.join(',')).css('color', 'red');
+    changeMessage(errors.join(','), 'red');
 }
 
 function checkSearchCriterias(pageSelected = false){
@@ -140,8 +134,6 @@ function checkSearchCriterias(pageSelected = false){
         }
         criteria = checkGenres();
         if(criteria){
-            //TODO validation
-            //unknown genre xxx
             let validationResult = validateGenres(criteria);
             if(validationResult !== true){
                 result.error.genres = "Unknown genre: " + validationResult;
@@ -152,6 +144,17 @@ function checkSearchCriterias(pageSelected = false){
             result.otherCriterias.genres = criteria;
         }
         //TODO search by actors
+        criteria = checkVotes();
+        if(criteria){
+            result.urlParameters += '&vote_count.gte=' + criteria;
+            result.otherCriterias.votes = criteria;
+        }
+        criteria = checkRating();
+        if(criteria){
+            result.urlParameters += '&vote_average.gte=' + criteria;
+            result.otherCriterias.rating = criteria;
+        }
+
     }
     console.log('checkSearchCriterias: ', result, typeof result);
     if(result.title === '' && result.urlParameters === '' && $.isEmptyObject(result.otherCriterias)){
@@ -193,6 +196,16 @@ function checkGenres(){
     }
 }
 
+function checkVotes(){
+    const votes = $('#votes').val();
+    return votes ? votes : false;
+}
+
+function checkRating(){
+    const rating = $('#rating').val();
+    return rating ? rating : false;
+}
+
 function searchBy(obj){
     if(obj.title){
         requestByTitle(obj.title, obj.page, obj.otherCriterias)
@@ -203,21 +216,15 @@ function searchBy(obj){
 
 function requestByTitle(str, page=1, otherCriterias){
     console.log('requestByTitle: ' ,'Other criterias: ', otherCriterias);
-    $.ajax(
-        {
-            url: 'https://api.themoviedb.org/3/search/movie?api_key=48f0555674730b7ab94aaeaf44dd3692&query=' +
-            encodeURIComponent(str)+'&page='+page,
-            method: 'GET'
-        }
-    ).done(function(data){
-        console.log('requestByTitle done: ', data);
-        if(otherCriterias.dategte || otherCriterias.datelte || otherCriterias.genres){
-            let filteredData = filterResults(data, otherCriterias);
-            showResults(filteredData, page);
-        } else {
-            showResults(data, page);
-        }
-    });
+    const url = 'https://api.themoviedb.org/3/search/movie?api_key=48f0555674730b7ab94aaeaf44dd3692&query=' +
+        encodeURIComponent(str)+'&page='+page;
+    sendRequest(url, otherCriterias);
+}
+
+function filterEachResultPage(data, otherCriterias){
+    console.log('filterEachResultPage: ', data);
+    return;
+    //TODO change search logic when changeing page
 }
 
 function filterResults(data, otherCriterias){
@@ -245,6 +252,16 @@ function filterResults(data, otherCriterias){
             return true;
         });
     }
+    if(otherCriterias.votes){
+        data.results = data.results.filter(function(result){
+            return result.vote_count >= parseInt(otherCriterias.votes, 10);
+        });
+    }
+    if(otherCriterias.rating){
+        data.results = data.results.filter(function(result){
+            return result.vote_average >= parseFloat(otherCriterias.rating);
+        });
+    }
     data.total_results -= (resultsLength - data.results.length);
     return data;
 }
@@ -252,15 +269,32 @@ function filterResults(data, otherCriterias){
 function requestByOtherCriterias(page=1, urlParameters){
     let url = 'https://api.themoviedb.org/3/discover/movie?api_key=48f0555674730b7ab94aaeaf44dd3692' +
         '&sort_by=popularity.desc' + urlParameters + '&page=' + page;
+    sendRequest(url);
+}
+
+function sendRequest(url, otherCriterias=false){
+    lastURL = url;
+    const page = url.slice(url.lastIndexOf('=')+1);
+    console.log('sendRequest: Page='+page);
     $.ajax(
         {
             url: url,
             method: 'GET'
         }
     ).done(function(data){
-        showResults(data, page);
+        console.log('sendRequest done: ', data);
+        if(otherCriterias == 'autosearch'){
+            showResults(data, 1, true);
+        } else if(!$.isEmptyObject(otherCriterias)){
+            //TODO CONTINUE filterEachResultPage
+            let filteredData = filterResults(data, otherCriterias);
+            //let filteredData = filterEachResultPage(data, otherCriterias);
+            showResults(filteredData, page);
+        } else {
+            showResults(data, page);
+        }
     }).fail(function(){
-        console.log("Something went wrong in requestByOtherCriterias");
+        console.log("Something went wrong in sendRequest");
     });
 }
 
@@ -316,19 +350,22 @@ function validateGenres(str){
 
 /*============================== Result functions =======================================*/
 
+function changeMessage(message='', color='inherit'){
+    $('#results_container').find('h2').text(message).css('color', color);
+}
+
 function showResults(obj, currentPage = 1, autoSearch = false){
-    const message = $('#results_container').find('h2');
     if(!autoSearch){
-        message.text('Total Results: ' + obj.total_results);
+        changeMessage('Total Results: ' + obj.total_results);
     } else {
-        message.text('Popular New Movies');
+        changeMessage('Popular New Movies');
     }
     $('.page').remove();
     let results = obj.total_results;
     if(results > 20){
         generatePagination(results, currentPage);
     } else {
-        $("#pagination").css("display", "none");
+        pagination.css("display", "none");
     }
     generateHTML(obj.results);
 }
@@ -365,13 +402,34 @@ function generateHTML(arr){
 function generatePagination(results, currentPage){
     console.log('generatePagination: ', 'Current Page: ', currentPage);
     console.log('=====================END===========================');
-    const pagination = $("#pagination");
+    const totalPageNumber = Math.ceil(results/20);
+    pagination.css("display", "flex");
+    showOrHideArrows(currentPage, totalPageNumber);
+    const start = calculateStart(currentPage);
+    generateButtons(currentPage, totalPageNumber, start);
+    pagination.find(".page").click(changePage);
+}
+
+function calculateStart(currentPage){
+    let result = 0;
+    switch (currentPage%3) {
+        case 1:
+            result = currentPage;
+            break;
+        case 2:
+            result = currentPage - 1;
+            break;
+        case 0:
+            result = currentPage - 2;
+            break;
+    }
+    return result;
+}
+
+function showOrHideArrows(currentPage, totalPageNumber){
     const firstButton = pagination.find("button:first-child");
     const backButton = pagination.find("button:nth-child(2)");
     const lastButton = pagination.find("button:last-child");
-    let totalPageNumber = Math.ceil(results/20);
-    pagination.css("display", "flex");
-    //show/hide left/right arrow
     if(currentPage == 1 ){
         firstButton.css('display', 'none');
         backButton.css('display', 'none');
@@ -389,66 +447,61 @@ function generatePagination(results, currentPage){
         backButton.css('display', 'block');
         lastButton.css('display', 'block');
     }
-    let counter;
-    switch (currentPage%3) {
-        case 1:
-            counter = currentPage;
-            break;
-        case 2:
-            counter = currentPage - 1;
-            break;
-        case 0:
-            counter = currentPage - 2;
-            break;
-    }
-    //generate buttons
+}
+
+function generateButtons(currentPage, totalPageNumber, start){
+    const lastButton = pagination.find("button:last-child");
     for(let i=1; i<=5; i++){
         let button = '';
-        if(i == 4 && totalPageNumber >= counter+1){
-            button = $('<button class="page" data-page="' + counter + '">...</button>');
+        if(i == 4 && totalPageNumber >= start+1){
+            button = $('<button class="page" data-page="' + start + '">...</button>');
             button.insertBefore(lastButton);
-            counter++;
+            start++;
             button = $('<button class="page">' + totalPageNumber + '</button>');
             button.insertBefore(lastButton);
-            counter++;
+            start++;
             break;
         }
-        if(counter > totalPageNumber){
+        if(start > totalPageNumber){
             break;
         }
-        if(counter == currentPage){
-            button = $('<button class="page page_selected">'+counter+'</button>');
+        if(start == currentPage){
+            button = $('<button class="page page_selected">'+start+'</button>');
         } else {
-            button = $('<button class="page">'+counter+'</button>');
+            button = $('<button class="page">'+start+'</button>');
         }
         button.insertBefore(lastButton);
-        counter++;
+        start++;
     }
-    pagination.find(".page").click(changePage);
 }
 
 function changePage(){
-    let pagination = $("#pagination");
-    let firstButton = pagination.find("button:first-child");
+    const firstButton = pagination.find("button:first-child");
     const backButton = pagination.find("button:nth-child(2)");
-    let lastButton = pagination.find("button:last-child");
-    let currentPage = pagination.find(".page_selected");
-    let prevPage = parseInt(currentPage.text(), 10) - 1;
-    let nextPage = parseInt(currentPage.text(), 10) + 1;
+    const lastButton = pagination.find("button:last-child");
+    const currentPage = pagination.find(".page_selected");
+    const prevPage = parseInt(currentPage.text(), 10) - 1;
+    const nextPage = parseInt(currentPage.text(), 10) + 1;
+    let url = lastURL.slice(0, lastURL.lastIndexOf('=')+1);
     if($(this)[0] == firstButton[0]){
         console.log('changePage: ', 'firstButton clicked');
-        startSearch();
+        url += '1';
+        sendRequest(url);
     } else if($(this)[0] == backButton[0]){
         console.log('changePage: ', 'backButton clicked');
-        startSearch(false, prevPage);
+        url += prevPage;
+        sendRequest(url);
     } else if ($(this)[0] == lastButton[0]){
         console.log('changePage: ', 'lastButton clicked');
-        startSearch(false, nextPage);
+        url += nextPage;
+        sendRequest(url);
     } else if($(this).text() == '...'){
-        startSearch(false, $(this).attr('data-page'));
+        url += $(this).attr('data-page');
+        sendRequest(url);
     }else {
         console.log('changePage: ', 'other clicked', $(this).text());
-        startSearch(false, $(this).text());
+        url += $(this).text();
+        sendRequest(url);
     }
 }
 
@@ -474,7 +527,6 @@ function requestDetails(id){
             method: 'GET'
         }
     ).done(function(data){
-        console.log(data);
         editDetails(data);
     }).fail(function(){
         console.log("Something went wrong in requestDetails");
@@ -489,7 +541,6 @@ function editDetails(data) {
     });
     let imageSource = '';
     if(data.poster_path == null){
-        //TODO BIGGER NO IMAGE
         imageSource = 'images/no_image.png';
     } else {
         imageSource = 'https://image.tmdb.org/t/p/w185' + data.poster_path;
@@ -519,7 +570,6 @@ $('.search input').keypress(function(e) {
     }
 });
 $(".details .fa-times").click(hideDetails);
-let pagination = $("#pagination");
 pagination.find("button:first-child").click(changePage);
 pagination.find("button:nth-child(2)").click(changePage);
 pagination.find("button:last-child").click(changePage);
