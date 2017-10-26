@@ -216,7 +216,7 @@ function checkActors(){
 function requestActorsId(actors, result){
     let promises = [];
     let idString = '';
-    actorsArr = actors.split(',');
+    let actorsArr = actors.split(',');
     console.log(actorsArr);
     actorsArr.forEach(actor => {
         promises.push(promiseActorId(actor));
@@ -227,7 +227,6 @@ function requestActorsId(actors, result){
             if(data.total_results == 0){
                 result.error.actors = "Unknown actor / actors ";
                 showSearchErrors(result.error);
-                return;
             } else {
                 idString += ',' + data.results[0].id;
             }
@@ -657,11 +656,14 @@ function requestDetails(id){
 }
 
 function editDetails(data) {
-    $('.details_container').css({
-        'background': 'url("https://image.tmdb.org/t/p/w1280/' + data.backdrop_path + '")',
-        'background-size': 'cover',
-        'background-position': 'center'
-    });
+    console.log('EditDetails: ', data);
+    if(data.backdrop_path){
+        $('.details_container').css({
+            'background': 'url("https://image.tmdb.org/t/p/w1280/' + data.backdrop_path + '")',
+            'background-size': 'cover',
+            'background-position': 'center'
+        });
+    }
     let imageSource = '';
     if(data.poster_path == null){
         imageSource = 'images/no_image.png';
@@ -693,9 +695,6 @@ $('.search input').keypress(function(e) {
     }
 });
 $('#title').on('keyup', disableActorsInput) ;
-$('#location').on('keyup blur', function(event) {
-    $("#finalSearch").prop('disabled', this.value.length === 0);
-});
 $(".details .fa-times").click(hideDetails);
 pagination.find("button:first-child").click(changePage);
 pagination.find("button:nth-child(2)").click(changePage);
