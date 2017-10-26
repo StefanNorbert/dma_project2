@@ -1,7 +1,7 @@
 const pagination = $("#pagination");
-let genres = [];
-let lastURL = '';
-let filteredResult = {};
+var genres = [],
+    lastURL = '',
+    filteredResult = {};
 
 /*============================== Helper functions =======================================*/
 function getTimestamp(dateString){
@@ -148,7 +148,6 @@ function checkSearchCriterias(pageSelected = false){
             result.urlParameters += '&with_genres=' + criteria;
             result.otherCriterias.genres = criteria;
         }
-        //TODO search by actors
         criteria = checkVotes();
         if(criteria){
             result.urlParameters += '&vote_count.gte=' + criteria;
@@ -159,7 +158,11 @@ function checkSearchCriterias(pageSelected = false){
             result.urlParameters += '&vote_average.gte=' + criteria;
             result.otherCriterias.rating = criteria;
         }
-
+        criteria = checkActors();
+        if(criteria){
+            requestActorsId(criteria, result);
+            return false;
+        }
     }
     console.log('checkSearchCriterias: ', result, typeof result);
     if(result.title === '' && result.urlParameters === '' && $.isEmptyObject(result.otherCriterias)){
@@ -199,6 +202,49 @@ function checkGenres(){
     } else {
         return false;
     }
+}
+
+function checkActors(){
+    let actors = $('#actors');
+    if (actors && actors.val()) {
+        return actors.val();
+    } else {
+        return false;
+    }
+}
+
+function requestActorsId(actors, result){
+    let promises = [];
+    let idString = '';
+    actorsArr = actors.split(',');
+    console.log(actorsArr);
+    actorsArr.forEach(actor => {
+        promises.push(promiseActorId(actor));
+    });
+    Promise.all(promises).then(function(dataArr) {
+        dataArr.forEach(data => {
+            console.log('Data: ', data);
+            if(data.total_results == 0){
+                result.error.actors = "Unknown actor / actors ";
+                showSearchErrors(result.error);
+                return;
+            } else {
+                idString += ',' + data.results[0].id;
+            }
+        });
+    idString = idString.slice(1);
+    result.urlParameters += '&with_cast=' + idString;
+    result.otherCriterias = {};
+    requestByOtherCriterias(1, result.urlParameters);
+    }).catch('Error in requestActorId');
+}
+
+function promiseActorId(actor){
+    return $.ajax(
+        {
+            url: 'https://api.themoviedb.org/3/search/person?query='+encodeURIComponent(actor)+'&api_key=48f0555674730b7ab94aaeaf44dd3692',
+            method: 'GET'
+        });
 }
 
 function checkVotes(){
@@ -290,6 +336,23 @@ function getGenresId(str){
     });
     result = result.join(',');
     return result;
+}
+
+function disableActorsInput(){
+    if(this.value.length !== 0){
+        $('#actors').prop(
+            {
+                'disabled': true,
+                'value': '',
+                'placeholder': 'Available only without title'
+            });
+    } else {
+        $('#actors').prop(
+            {
+                'disabled': false,
+                'placeholder': 'Arnold Schwarzenegger, Angelina Jolie'
+            });
+    }
 }
 
 /*============================== Validation functions =======================================*/
@@ -386,7 +449,7 @@ function filterEachResultPage(data, otherCriterias){
         pagination.attr('data-filtered','true');
         const filteredFragment = takeFragment();
         showResults(filteredFragment);
-    });
+    }).catch('Error in filterEachResultPage');
 }
 
 function filterResults(data, otherCriterias){
@@ -520,7 +583,7 @@ function changePage(){
     let url = cutPageNumberFromURL();
     if($(this)[0] == firstButton[0]){
         console.log('changePage: ', 'firstButton clicked');
-        if(pagination.attr('data-filtered')){
+        if(pagination.attr('data-filtered') == 'true'){
             const filteredFragment = takeFragment();
             showResults(filteredFragment);
             return;
@@ -529,7 +592,7 @@ function changePage(){
         sendRequest(url);
     } else if($(this)[0] == backButton[0]){
         console.log('changePage: ', 'backButton clicked');
-        if(pagination.attr('data-filtered')){
+        if(pagination.attr('data-filtered')  == 'true'){
             const filteredFragment = takeFragment(prevPage);
             showResults(filteredFragment, prevPage);
             return;
@@ -538,7 +601,7 @@ function changePage(){
         sendRequest(url);
     } else if ($(this)[0] == lastButton[0]){
         console.log('changePage: ', 'lastButton clicked');
-        if(pagination.attr('data-filtered')){
+        if(pagination.attr('data-filtered')  == 'true'){
             const filteredFragment = takeFragment(nextPage);
             showResults(filteredFragment, nextPage);
             return;
@@ -546,7 +609,7 @@ function changePage(){
         url += nextPage;
         sendRequest(url);
     } else if($(this).text() == '...'){
-        if(pagination.attr('data-filtered')){
+        if(pagination.attr('data-filtered')  == 'true'){
             const filteredFragment = takeFragment($(this).attr('data-page'));
             showResults(filteredFragment, $(this).attr('data-page'));
             return;
@@ -555,7 +618,7 @@ function changePage(){
         sendRequest(url);
     }else {
         console.log('changePage: ', 'other clicked', $(this).text());
-        if(pagination.attr('data-filtered')){
+        if(pagination.attr('data-filtered')  == 'true'){
             const filteredFragment = takeFragment($(this).text());
             showResults(filteredFragment, $(this).text());
             return;
@@ -628,6 +691,10 @@ $('.search input').keypress(function(e) {
     if(e.which == 13) {
         startSearch();
     }
+});
+$('#title').on('keyup', disableActorsInput) ;
+$('#location').on('keyup blur', function(event) {
+    $("#finalSearch").prop('disabled', this.value.length === 0);
 });
 $(".details .fa-times").click(hideDetails);
 pagination.find("button:first-child").click(changePage);
