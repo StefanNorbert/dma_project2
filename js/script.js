@@ -1,6 +1,7 @@
 const pagination = $("#pagination");
 let genres = [];
 let lastURL = '';
+let filteredResult = {};
 
 /*============================== Helper functions =======================================*/
 function getTimestamp(dateString){
@@ -15,6 +16,10 @@ function sixMonthsAgo(){
 
 function capitalizeFirstLetter(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function cutPageNumberFromURL(){
+    return lastURL.slice(0, lastURL.lastIndexOf('=')+1);
 }
 
 /*============================== Startup functions =======================================*/
@@ -221,51 +226,6 @@ function requestByTitle(str, page=1, otherCriterias){
     sendRequest(url, otherCriterias);
 }
 
-function filterEachResultPage(data, otherCriterias){
-    console.log('filterEachResultPage: ', data);
-    return;
-    //TODO change search logic when changeing page
-}
-
-function filterResults(data, otherCriterias){
-    //TODO FILTER EACH RESULT PAGE
-    let resultsLength = data.results.length;
-    if(otherCriterias.dategte){
-        data.results = data.results.filter(function(result){
-            return getTimestamp(result.release_date) >= getTimestamp(otherCriterias.dategte);
-        });
-    }
-    if(otherCriterias.datelte){
-        data.results = data.results.filter(function(result){
-            return getTimestamp(result.release_date) <= getTimestamp(otherCriterias.datelte);
-        });
-    }
-    if(otherCriterias.genres){
-        let searchelements = otherCriterias.genres.split(',');
-        data.results = data.results.filter(function(result){
-            let arr = result.genre_ids;
-            for(let i=0; i<searchelements.length; i++){
-                if(!arr.includes(parseInt(searchelements[i], 10))){
-                    return false;
-                }
-            }
-            return true;
-        });
-    }
-    if(otherCriterias.votes){
-        data.results = data.results.filter(function(result){
-            return result.vote_count >= parseInt(otherCriterias.votes, 10);
-        });
-    }
-    if(otherCriterias.rating){
-        data.results = data.results.filter(function(result){
-            return result.vote_average >= parseFloat(otherCriterias.rating);
-        });
-    }
-    data.total_results -= (resultsLength - data.results.length);
-    return data;
-}
-
 function requestByOtherCriterias(page=1, urlParameters){
     let url = 'https://api.themoviedb.org/3/discover/movie?api_key=48f0555674730b7ab94aaeaf44dd3692' +
         '&sort_by=popularity.desc' + urlParameters + '&page=' + page;
@@ -273,6 +233,7 @@ function requestByOtherCriterias(page=1, urlParameters){
 }
 
 function sendRequest(url, otherCriterias=false){
+    pagination.attr('data-filtered','false');
     lastURL = url;
     const page = url.slice(url.lastIndexOf('=')+1);
     console.log('sendRequest: Page='+page);
@@ -286,16 +247,21 @@ function sendRequest(url, otherCriterias=false){
         if(otherCriterias == 'autosearch'){
             showResults(data, 1, true);
         } else if(!$.isEmptyObject(otherCriterias)){
-            //TODO CONTINUE filterEachResultPage
-            let filteredData = filterResults(data, otherCriterias);
-            //let filteredData = filterEachResultPage(data, otherCriterias);
-            showResults(filteredData, page);
+            filterEachResultPage(data, otherCriterias);
         } else {
             showResults(data, page);
         }
     }).fail(function(){
         console.log("Something went wrong in sendRequest");
     });
+}
+
+function requestPromise(url){
+    return $.ajax(
+        {
+            url: url,
+            method: 'GET'
+        });
 }
 
 function getGenresName(ids){
@@ -397,6 +363,75 @@ function generateHTML(arr){
     $(".result").click(showDetails);
 }
 
+function filterEachResultPage(data, otherCriterias){
+    let results = [];
+    let promises = [];
+    data = filterResults(data, otherCriterias);
+    results.push(...data.results);
+    for(let i=2; i<=data.total_pages; i++) {
+        let url = cutPageNumberFromURL();
+        url += i;
+        promises.push(requestPromise(url));
+    }
+    Promise.all(promises).then(function(dataArr) {
+        dataArr.forEach(data => {
+            const filtered = filterResults(data, otherCriterias);
+            results.push(...filtered.results);
+        });
+        filteredResult = {
+            total_results: results.length,
+            results: [...results]
+        };
+        console.log('Filtered Results: ', filteredResult);
+        pagination.attr('data-filtered','true');
+        const filteredFragment = takeFragment();
+        showResults(filteredFragment);
+    });
+}
+
+function filterResults(data, otherCriterias){
+    let resultsLength = data.results.length;
+    if(otherCriterias.dategte){
+        data.results = data.results.filter(result => getTimestamp(result.release_date) >= getTimestamp(otherCriterias.dategte));
+    }
+    if(otherCriterias.datelte){
+        data.results = data.results.filter(function(result){
+            return getTimestamp(result.release_date) <= getTimestamp(otherCriterias.datelte);
+        });
+    }
+    if(otherCriterias.genres){
+        let searchelements = otherCriterias.genres.split(',');
+        data.results = data.results.filter(function(result){
+            let arr = result.genre_ids;
+            for(let i=0; i<searchelements.length; i++){
+                if(!arr.includes(parseInt(searchelements[i], 10))){
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+    if(otherCriterias.votes){
+        data.results = data.results.filter(function(result){
+            return result.vote_count >= parseInt(otherCriterias.votes, 10);
+        });
+    }
+    if(otherCriterias.rating){
+        data.results = data.results.filter(function(result){
+            return result.vote_average >= parseFloat(otherCriterias.rating);
+        });
+    }
+    data.total_results -= (resultsLength - data.results.length);
+    return data;
+}
+
+function takeFragment(page=1){
+    const filteredFragment = {};
+    filteredFragment.total_results = filteredResult.total_results;
+    filteredFragment.results = filteredResult.results.slice((page*20)-20, page*20);
+    return filteredFragment;
+}
+
 /*============================== Pagination functions =======================================*/
 
 function generatePagination(results, currentPage){
@@ -482,24 +517,49 @@ function changePage(){
     const currentPage = pagination.find(".page_selected");
     const prevPage = parseInt(currentPage.text(), 10) - 1;
     const nextPage = parseInt(currentPage.text(), 10) + 1;
-    let url = lastURL.slice(0, lastURL.lastIndexOf('=')+1);
+    let url = cutPageNumberFromURL();
     if($(this)[0] == firstButton[0]){
         console.log('changePage: ', 'firstButton clicked');
+        if(pagination.attr('data-filtered')){
+            const filteredFragment = takeFragment();
+            showResults(filteredFragment);
+            return;
+        }
         url += '1';
         sendRequest(url);
     } else if($(this)[0] == backButton[0]){
         console.log('changePage: ', 'backButton clicked');
+        if(pagination.attr('data-filtered')){
+            const filteredFragment = takeFragment(prevPage);
+            showResults(filteredFragment, prevPage);
+            return;
+        }
         url += prevPage;
         sendRequest(url);
     } else if ($(this)[0] == lastButton[0]){
         console.log('changePage: ', 'lastButton clicked');
+        if(pagination.attr('data-filtered')){
+            const filteredFragment = takeFragment(nextPage);
+            showResults(filteredFragment, nextPage);
+            return;
+        }
         url += nextPage;
         sendRequest(url);
     } else if($(this).text() == '...'){
+        if(pagination.attr('data-filtered')){
+            const filteredFragment = takeFragment($(this).attr('data-page'));
+            showResults(filteredFragment, $(this).attr('data-page'));
+            return;
+        }
         url += $(this).attr('data-page');
         sendRequest(url);
     }else {
         console.log('changePage: ', 'other clicked', $(this).text());
+        if(pagination.attr('data-filtered')){
+            const filteredFragment = takeFragment($(this).text());
+            showResults(filteredFragment, $(this).text());
+            return;
+        }
         url += $(this).text();
         sendRequest(url);
     }
