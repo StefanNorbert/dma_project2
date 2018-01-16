@@ -1,5 +1,4 @@
 const pagination = $("#pagination");
-const apiKey = '48f0555674730b7ab94aaeaf44dd3692';
 var genres = [],
     lastURL = '',
     filteredResult = {};
