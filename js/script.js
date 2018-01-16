@@ -1,4 +1,5 @@
 const pagination = $("#pagination");
+const apiKey = '48f0555674730b7ab94aaeaf44dd3692';
 var genres = [],
     lastURL = '',
     filteredResult = {};
@@ -27,7 +28,7 @@ function cutPageNumberFromURL(){
 function requestGenres(){
     $.ajax(
         {
-            url: 'https://api.themoviedb.org/3/genre/movie/list?api_key=48f0555674730b7ab94aaeaf44dd3692&language=en-US',
+            url: 'https://api.themoviedb.org/3/genre/movie/list?api_key='+apiKey+'&language=en-US',
             method: 'GET'
         }
     ).done(function(data){
@@ -43,7 +44,7 @@ function requestPopularMovies(){
     const year = d.getFullYear();
     const month = d.getMonth()+1;
     const url = 'https://api.themoviedb.org/3/discover/movie?vote_average.gte=6.5&vote_count.gte=2000&primary_release_date.gte='+year+'-'+
-        month+'-01&include_video=false&include_adult=false&sort_by=popularity.desc&language=en-US&api_key=48f0555674730b7ab94aaeaf44dd3692&page=1';
+        month+'-01&include_video=false&include_adult=false&sort_by=popularity.desc&language=en-US&api_key='+apiKey+'&page=1';
     sendRequest(url,'autosearch');
 }
 
@@ -241,7 +242,7 @@ function requestActorsId(actors, result){
 function promiseActorId(actor){
     return $.ajax(
         {
-            url: 'https://api.themoviedb.org/3/search/person?query='+encodeURIComponent(actor)+'&api_key=48f0555674730b7ab94aaeaf44dd3692',
+            url: 'https://api.themoviedb.org/3/search/person?query='+encodeURIComponent(actor)+'&api_key='+apiKey+'',
             method: 'GET'
         });
 }
@@ -266,13 +267,13 @@ function searchBy(obj){
 
 function requestByTitle(str, page=1, otherCriterias){
     console.log('requestByTitle: ' ,'Other criterias: ', otherCriterias);
-    const url = 'https://api.themoviedb.org/3/search/movie?api_key=48f0555674730b7ab94aaeaf44dd3692&query=' +
+    const url = 'https://api.themoviedb.org/3/search/movie?api_key='+apiKey+'&query=' +
         encodeURIComponent(str)+'&page='+page;
     sendRequest(url, otherCriterias);
 }
 
 function requestByOtherCriterias(page=1, urlParameters){
-    let url = 'https://api.themoviedb.org/3/discover/movie?api_key=48f0555674730b7ab94aaeaf44dd3692' +
+    let url = 'https://api.themoviedb.org/3/discover/movie?api_key='+apiKey+'' +
         '&sort_by=popularity.desc' + urlParameters + '&page=' + page;
     sendRequest(url);
 }
@@ -645,7 +646,7 @@ function hideDetails(){
 function requestDetails(id){
     $.ajax(
         {
-            url: 'https://api.themoviedb.org/3/movie/' + id + '?api_key=48f0555674730b7ab94aaeaf44dd3692',
+            url: 'https://api.themoviedb.org/3/movie/' + id + '?api_key='+apiKey+'',
             method: 'GET'
         }
     ).done(function(data){
